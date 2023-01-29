@@ -1,0 +1,94 @@
+<html>
+  <head>
+    <style>
+      table, th, td {
+        border: 1px solid black;
+        border-collapse: collapse;
+      }
+      th, td {
+        padding: 5px;
+      }
+      th {
+        text-align: left;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>MyConnect Customer Information</h1>
+    <table id="customer-table">
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Preferences</th>
+        <th>Devices</th>
+      </tr>
+    </table>
+    <button id="refresh-button">Refresh</button>
+
+    <script>
+      const table = document.getElementById("customer-table");
+
+      const refresh = function() {
+        fetch("http://localhost:5000/customers", {
+          headers: {
+            "Authorization": "Bearer " + localStorage.getItem("token")
+          }
+        })
+          .then(res => res.json())
+          .then(data => {
+            // clear the table
+            while (table.rows.length > 1) {
+              table.deleteRow(1);
+            }
+
+            // add customers to the table
+            data.customers.forEach(customer => {
+              const row = table.insertRow();
+              row.insertCell().innerHTML = customer.id;
+              row.insertCell().innerHTML = customer.name;
+              row.insertCell().innerHTML = customer.email;
+              row.insertCell().innerHTML = customer.preferences.toString();
+              row.insertCell().innerHTML = customer.devices.map(device => device.name).toString();
+            });
+          });
+      };
+
+      document.getElementById("refresh-button").addEventListener("click", refresh);
+
+      // check for existing token in local storage
+      if (!localStorage.getItem("token")) {
+        // show login form
+        const email = prompt("Enter your email");
+        const password = prompt("Enter your password");
+
+        // send login request
+        fetch("http://localhost:5000/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            email: email,
+            password: password
+          })
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.token) {
+              // save token to local storage
+              localStorage.setItem("token", data.token);
+
+              // refresh the table
+              refresh();
+            } else {
+              alert("Login failed");
+            }
+          });
+      } else {
+        // refresh the table
+        refresh();
+      }
+    </script>
+  </body>
+</html>
